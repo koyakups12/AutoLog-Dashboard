@@ -91,7 +91,7 @@ let S=null,ROWS=[],mode='team',mine='';
 try{S=JSON.parse(localStorage.getItem('al_dash')||'null');if(S&&S.exp<Date.now())S=null}catch(e){S=null}
 async function call(b){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)});return r.json()}
 function save(){try{S?localStorage.setItem('al_dash',JSON.stringify(S)):localStorage.removeItem('al_dash')}catch(e){}}
-function show(){const on=!!S;$('#lg').classList.toggle('hide',on);$('#ap').classList.toggle('hide',!on);if(on){mine=title(S.name);if(!$('#s').value)range(6);load()}}
+function show(){const on=!!S;$('#lg').classList.toggle('hide',on);$('#ap').classList.toggle('hide',!on);if(on){mine=title(S.name);if(!$('#s').value)range(0);load()}}
 function range(n){const t=shiftToday(),f=new Date(t);f.setDate(f.getDate()-n);$('#s').value=fmt(f);$('#e').value=fmt(t)}
 async function login(){$('#err').textContent='';
  try{const r=await call({action:'dashboard_login',username:$('#u').value.trim(),password:$('#p').value});
@@ -134,5 +134,6 @@ $('#ag').onchange=()=>{$('#ag').dataset.u=1;render()};
 ['#s','#e'].forEach(i=>$(i).onchange=load);
 $('#q0').onclick=()=>{range(0);load()};$('#q7').onclick=()=>{range(6);load()};$('#q30').onclick=()=>{range(29);load()};
 $('#go').onclick=login;$('#p').onkeydown=e=>{if(e.key==='Enter')login()};$('#out').onclick=()=>logout();
+setInterval(()=>{if(S)load()},600000);
 show();
 </script></body></html>
