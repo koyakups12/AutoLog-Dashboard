@@ -40,6 +40,20 @@ main{max-width:1200px;margin:0 auto;padding:16px}
 #lg button{width:100%;padding:9px;background:var(--head);color:#fff;border:0;border-radius:6px}
 #err{color:#c0392b;font-size:12px;min-height:16px;margin-top:8px}
 .me .t{display:none}.team .m{display:none}.hide{display:none!important}
+.cbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}
+.cbar b{font-size:16px;min-width:150px;text-align:center}
+.cb{color:var(--ink);border-color:var(--line);background:var(--card)}
+.cbar label{color:var(--mute)}
+.cal7{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:12px}
+.cal7+.cal7{margin-top:4px}
+.wk div{background:var(--head);color:#fff;text-align:center;padding:4px;font-size:12px}
+.day{background:var(--card);border:1px solid var(--line);padding:6px;min-height:130px;font-size:11px;cursor:pointer;min-width:0}
+.day.e{cursor:default;opacity:.6}.day.z{background:transparent;border:0;cursor:default}
+.day.td{outline:2px solid var(--hi)}
+.day h4{margin:0 0 4px;font-size:15px}
+.day p{margin:6px 0 2px;color:var(--acc);font-weight:700}
+.day div{display:flex;gap:4px;justify-content:space-between}.day div span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:760px){.cal7{grid-template-columns:1fr}.wk,.day.z{display:none}}
 </style></head>
 <body class="team">
 <div id="lg">
@@ -52,7 +66,7 @@ main{max-width:1200px;margin:0 auto;padding:16px}
 <div id="ap" class="hide">
 <header>
 <h1>AutoLog Dashboard</h1>
-<div class="seg"><button id="bt" class="on">Team</button><button id="bm">My view</button></div>
+<div class="seg"><button id="bt" class="on">Team</button><button id="bm">My view</button><button id="bc">Calendar</button></div>
 <label class="m">Agent <select id="ag"></select></label>
 <label>From <input type="date" id="s"></label>
 <label>To <input type="date" id="e"></label>
@@ -61,6 +75,7 @@ main{max-width:1200px;margin:0 auto;padding:16px}
 </header>
 <main>
 <div class="note" id="st">Loading...</div>
+<div id="dv">
 <div class="tiles m" id="tiles"></div>
 <div class="sec">ASSISTED LOGS <b id="ta"></b></div>
 <div class="grid">
@@ -76,6 +91,14 @@ main{max-width:1200px;margin:0 auto;padding:16px}
 <div class="card"><h3>Top 10 sub-categories</h3><div id="f-sc"></div></div>
 <div class="card"><h3>Follow-up volume by hour</h3><div id="f-hr"></div></div>
 <div class="card m"><h3>My logs per day</h3><div id="f-dy"></div></div>
+</div>
+</div>
+<div id="cv" class="hide">
+<div class="cbar"><button class="q cb" id="cp">&lt; Prev</button><b id="cl"></b><button class="q cb" id="cx">Next &gt;</button><label>Agent <select id="cg"></select></label></div>
+<div class="grid"><div class="card"><h3>Month at a glance</h3><div id="cs"></div></div><div class="card"><h3>Agent ranking (Assisted + Follow-Up)</h3><div id="cr"></div></div></div>
+<div class="cal7 wk"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+<div class="cal7" id="cgrid"></div>
+<div class="note" style="margin-top:12px">Each day shows its top item and count. Assisted: agent, status, priority. Follow-Up: agent, area, group, hour, sub-category. Click a day to open it.</div>
 </div>
 </main>
 </div>
@@ -119,7 +142,7 @@ function hbar(id,en,n){en=en.slice(0,n||99);const m=en[0]?en[0][1]:1;
  $(id).innerHTML=en.map(x=>`<div class="hb"><span title="${esc(x[0])}">${esc(x[0])}</span><u style="width:${x[1]/m*100}%"></u><b>${x[1]}</b></div>`).join('')||'No data in this range'}
 function vbar(id,l,v){const m=Math.max(1,...v);
  $(id).innerHTML=l.length?`<div class="vb">${l.map((x,i)=>`<div>${v[i]}<u style="height:${v[i]/m*80}%"></u><small>${x}</small></div>`).join('')}</div>`:'No data in this range'}
-function render(){const ag=mode==='me'?$('#ag').value:'';
+function render(){if(mode==='cal')return renderCal();const ag=mode==='me'?$('#ag').value:'';
  if(ag){const mt=tot('A',ag)+tot('F',ag),all=byAg('A').concat(byAg('F')),m={};all.forEach(x=>m[x[0]]=(m[x[0]]||0)+x[1]);
   const rk=Object.entries(m).sort((a,b)=>b[1]-a[1]),all_t=rk.reduce((s,x)=>s+x[1],0)||1,pos=rk.findIndex(x=>x[0]===ag)+1;
   $('#tiles').innerHTML=[['Logs in range',mt],['Share of team',Math.round(mt/all_t*100)+'%'],['Team rank',pos?'#'+pos+' of '+rk.length:'-'],['Team average',Math.round(all_t/(rk.length||1))]].map(x=>`<div class="card tile"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');
@@ -128,8 +151,42 @@ function render(){const ag=mode==='me'?$('#ag').value:'';
  hbar('#a-ag',byAg('A'));donut('#a-st',sum('A','st',ag));donut('#a-pr',sum('A','pr',ag));
  hbar('#f-ag',byAg('F'));donut('#f-ar',sum('F','ar',ag));donut('#f-gr',sum('F','gr',ag));hbar('#f-sc',sum('F','sc',ag),10);
  const h=sum('F','hr',ag).sort((x,y)=>x[0]-y[0]);vbar('#f-hr',h.map(x=>String(x[0]).padStart(2,'0')+':00'),h.map(x=>x[1]))}
-const set=m=>{mode=m;document.body.className=m==='me'?'me':'team';$('#bt').className=m==='me'?'':'on';$('#bm').className=m==='me'?'on':'';if(m==='me'&&mine&&[...$('#ag').options].some(o=>o.value===mine)&&!$('#ag').dataset.u)$('#ag').value=mine;render()};
+let cm=new Date(),calAg='';
+function calLoad(){const y=cm.getFullYear(),mo=cm.getMonth();$('#s').value=fmt(new Date(y,mo,1));$('#e').value=fmt(new Date(y,mo+1,0));load()}
+function agg(rs){const o={A:{n:0,ag:{},st:{},pr:{}},F:{n:0,ag:{},ar:{},gr:{},hr:{},sc:{}}};
+ rs.forEach(r=>{const x=o[r[0]];if(!x)return;x.n+=r[3].n;x.ag[r[2]]=(x.ag[r[2]]||0)+r[3].n;
+  for(const k in x){if(k==='n'||k==='ag')continue;const s=r[3][k]||{};for(const v in s)x[k][v]=(x[k][v]||0)+s[v]}});return o}
+const topOf=m=>{let b=null;for(const k in m)if(!b||m[k]>b[1])b=[k,m[k]];return b};
+const hh=k=>String(k).padStart(2,'0')+':00';
+function renderCal(){
+ const y=cm.getFullYear(),mo=cm.getMonth(),nd=new Date(y,mo+1,0).getDate(),first=new Date(y,mo,1).getDay();
+ const ags=[...new Set(ROWS.map(r=>r[2]).concat(calAg))].filter(Boolean).sort();
+ $('#cg').innerHTML='<option value="">All agents</option>'+ags.map(a=>`<option${a===calAg?' selected':''}>${esc(a)}</option>`).join('');
+ $('#cl').textContent=cm.toLocaleString('en-US',{month:'long',year:'numeric'});
+ const rows=ROWS.filter(r=>!calAg||r[2]===calAg),by={};rows.forEach(r=>(by[r[1]]=by[r[1]]||[]).push(r));
+ const M=agg(rows),line=(b,f)=>b?`<div><span>${esc(f?f(b[0]):b[0])}</span><b>${b[1]}</b></div>`:'';
+ const mx=Math.max(1,...Object.values(by).map(rs=>rs.reduce((s,r)=>s+r[3].n,0))),tdy=fmt(shiftToday());let h='';
+ for(let i=0;i<first;i++)h+='<div class="day z"></div>';
+ for(let d=1;d<=nd;d++){const k=y+'-'+String(mo+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'),rs=by[k],td=k===tdy?' td':'';
+  if(!rs){h+=`<div class="day e${td}"><h4>${d}</h4></div>`;continue}
+  const o=agg(rs),t=o.A.n+o.F.n;
+  h+=`<div class="day${td}" data-d="${k}" style="background:color-mix(in srgb,var(--acc) ${Math.round(t/mx*30)}%,var(--card))"><h4>${d}</h4><p>Assisted ${o.A.n}</p>${line(topOf(o.A.ag))}${line(topOf(o.A.st))}${line(topOf(o.A.pr))}<p>Follow-Up ${o.F.n}</p>${line(topOf(o.F.ag))}${line(topOf(o.F.ar))}${line(topOf(o.F.gr))}${line(topOf(o.F.hr),hh)}${line(topOf(o.F.sc))}</div>`}
+ $('#cgrid').innerHTML=h;
+ const row=(l,b,f)=>`<tr><td>${l}</td><td>${b?esc(f?f(b[0]):b[0])+' ('+b[1]+')':'-'}</td></tr>`;
+ $('#cs').innerHTML=`<table><tr><th colspan="2">Assisted: ${M.A.n}</th></tr>${row('Top agent',topOf(M.A.ag))}${row('Top status',topOf(M.A.st))}${row('Top priority',topOf(M.A.pr))}<tr><th colspan="2">Follow-Up: ${M.F.n}</th></tr>${row('Top agent',topOf(M.F.ag))}${row('Top area',topOf(M.F.ar))}${row('Top group',topOf(M.F.gr))}${row('Top hour',topOf(M.F.hr),hh)}${row('Top sub-category',topOf(M.F.sc))}</table>`;
+ const rk={};[M.A.ag,M.F.ag].forEach(m=>{for(const a in m)rk[a]=(rk[a]||0)+m[a]});hbar('#cr',Object.entries(rk).sort((a,b)=>b[1]-a[1]))}
+const set=(m,keep)=>{const was=mode;
+ [$('#s').parentElement,$('#e').parentElement,$('#q0'),$('#q7'),$('#q30')].forEach(x=>x.classList.toggle('hide',m==='cal'));
+ $('#dv').classList.toggle('hide',m==='cal');$('#cv').classList.toggle('hide',m!=='cal');$('#bc').className=m==='cal'?'on':'';
+ if(m==='cal'){mode='cal';document.body.className='team';$('#bt').className='';$('#bm').className='';const t=shiftToday();cm=new Date(t.getFullYear(),t.getMonth(),1);calLoad();return}
+ set0(m);if(was==='cal'){if(!keep)range(0);load()}};
+const set0=m=>{mode=m;document.body.className=m==='me'?'me':'team';$('#bt').className=m==='me'?'':'on';$('#bm').className=m==='me'?'on':'';if(m==='me'&&mine&&[...$('#ag').options].some(o=>o.value===mine)&&!$('#ag').dataset.u)$('#ag').value=mine;render()};
 $('#bt').onclick=()=>set('team');$('#bm').onclick=()=>set('me');
+$('#bc').onclick=()=>set('cal');
+$('#cp').onclick=()=>{cm=new Date(cm.getFullYear(),cm.getMonth()-1,1);calLoad()};
+$('#cx').onclick=()=>{cm=new Date(cm.getFullYear(),cm.getMonth()+1,1);calLoad()};
+$('#cg').onchange=()=>{calAg=$('#cg').value;render()};
+$('#cgrid').onclick=e=>{const c=e.target.closest('[data-d]');if(c){$('#s').value=$('#e').value=c.dataset.d;set('team',1)}};
 $('#ag').onchange=()=>{$('#ag').dataset.u=1;render()};
 ['#s','#e'].forEach(i=>$(i).onchange=load);
 $('#q0').onclick=()=>{range(0);load()};$('#q7').onclick=()=>{range(6);load()};$('#q30').onclick=()=>{range(29);load()};
