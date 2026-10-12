@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AutoLog Dashboard</title>
+<style>
+:root{--bg:#eaf1f2;--card:#fff;--ink:#12303a;--mute:#5d7780;--head:#0d3340;--acc:#3f7f8f;--line:#d3e1e4;--hi:#ffe14d;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a1a1f;--card:#12272e;--ink:#e3eef1;--mute:#8fa9b1;--head:#06141a;--acc:#5fb0c3;--line:#23404a}}
+:root[data-theme="dark"]{--bg:#0a1a1f;--card:#12272e;--ink:#e3eef1;--mute:#8fa9b1;--head:#06141a;--acc:#5fb0c3;--line:#23404a}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 Verdana,"Segoe UI",system-ui,sans-serif}
+header{background:var(--head);color:#fff;padding:12px 18px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+h1{font-size:18px;margin:0 auto 0 0}
+button{font:inherit;cursor:pointer}
+.seg button,.q{background:transparent;color:#cfe3e8;border:1px solid #4d7d8a;padding:5px 12px}
+.seg button:first-child{border-radius:6px 0 0 6px}.seg button:last-child{border-radius:0 6px 6px 0}
+.seg button.on{background:var(--hi);color:#12303a;border-color:var(--hi);font-weight:700}
+.q{border-radius:6px}
+label{font-size:12px;color:#cfe3e8;display:flex;align-items:center;gap:6px}
+input,select{font:inherit;padding:4px 6px;border-radius:5px;border:1px solid #4d7d8a;background:#fff;color:#12303a}
+main{max-width:1200px;margin:0 auto;padding:16px}
+.note{background:var(--card);border-left:4px solid var(--hi);padding:8px 12px;margin-bottom:14px;color:var(--mute);font-size:12px}
+.sec{background:var(--head);color:#fff;display:flex;align-items:baseline;gap:14px;padding:8px 14px;margin:22px 0 12px;font-weight:700}
+.sec b{font-size:26px;color:var(--hi)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);padding:12px;min-width:0}
+.card h3{margin:0 0 10px;font-size:13px;color:var(--acc)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.tile b{display:block;font-size:28px}.tile span{color:var(--mute);font-size:12px}
+.don{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.don svg{width:130px;height:130px;flex:none}
+.lg{flex:1;min-width:130px;font-size:12px}.lg div{display:flex;gap:6px;align-items:center;padding:1px 0}
+.lg i{width:10px;height:10px;flex:none}.lg em{margin-left:auto;font-style:normal;color:var(--mute)}
+.hb{display:grid;grid-template-columns:110px 1fr 34px;gap:6px;align-items:center;font-size:12px;margin:3px 0}
+.hb u{display:block;height:12px;background:var(--acc)}.hb span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vb{display:flex;gap:6px;align-items:flex-end;height:170px;overflow-x:auto;padding-top:14px}
+.vb div{flex:1 0 34px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:10px}
+.vb u{display:block;width:100%;background:var(--acc)}.vb small{color:var(--mute);margin-top:3px;white-space:nowrap}
+#lg{max-width:340px;margin:12vh auto;background:var(--card);border:1px solid var(--line);padding:22px}
+#lg h2{margin:0 0 14px;font-size:18px}#lg input{width:100%;margin-bottom:10px;padding:8px;border-color:var(--line)}
+#lg button{width:100%;padding:9px;background:var(--head);color:#fff;border:0;border-radius:6px}
+#err{color:#c0392b;font-size:12px;min-height:16px;margin-top:8px}
+.me .t{display:none}.team .m{display:none}.hide{display:none!important}
+</style></head>
+<body class="team">
+<div id="lg">
+<h2>AutoLog Dashboard</h2>
+<input id="u" placeholder="Username" autocomplete="username">
+<input id="p" type="password" placeholder="Password" autocomplete="current-password">
+<button id="go">Log in</button>
+<div id="err"></div>
+</div>
+<div id="ap" class="hide">
+<header>
+<h1>AutoLog Dashboard</h1>
+<div class="seg"><button id="bt" class="on">Team</button><button id="bm">My view</button></div>
+<label class="m">Agent <select id="ag"></select></label>
+<label>From <input type="date" id="s"></label>
+<label>To <input type="date" id="e"></label>
+<button class="q" id="q0">Today</button><button class="q" id="q7">7 days</button><button class="q" id="q30">30 days</button>
+<button class="q" id="out">Log out</button>
+</header>
+<main>
+<div class="note" id="st">Loading...</div>
+<div class="tiles m" id="tiles"></div>
+<div class="sec">ASSISTED LOGS <b id="ta"></b></div>
+<div class="grid">
+<div class="card t"><h3>Agent</h3><div id="a-ag"></div></div>
+<div class="card"><h3>Status</h3><div id="a-st"></div></div>
+<div class="card"><h3>Priority</h3><div id="a-pr"></div></div>
+</div>
+<div class="sec">FOLLOW-UP LOGS <b id="tf"></b></div>
+<div class="grid">
+<div class="card t"><h3>Agent</h3><div id="f-ag"></div></div>
+<div class="card"><h3>Area</h3><div id="f-ar"></div></div>
+<div class="card"><h3>Group</h3><div id="f-gr"></div></div>
+<div class="card"><h3>Top 10 sub-categories</h3><div id="f-sc"></div></div>
+<div class="card"><h3>Follow-up volume by hour</h3><div id="f-hr"></div></div>
+<div class="card m"><h3>My logs per day</h3><div id="f-dy"></div></div>
+</div>
+</main>
+</div>
+<script>
+// PASTE your Apps Script web app URL (the one ending in /exec) between the quotes:
+const API="https://script.google.com/macros/s/AKfycbxhpsX-uRpsln5uEeXvNl2kK6OeOFDcnUHwgoOXMzdUT-RsGFPGdKkw0dFdCMhAwtzy2A/exec";
+const PAL=['#4285f4','#ea4335','#fbbc04','#34a853','#ff6d01','#46bdc6','#7baaf7','#f07b72','#fcd04f','#71c287'];
+const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
+const title=s=>String(s||'').trim().toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
+const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const shiftToday=()=>new Date(Date.now()-7*36e5);   // before 7AM still counts as the previous day
+let S=null,ROWS=[],mode='team',mine='';
+try{S=JSON.parse(localStorage.getItem('al_dash')||'null');if(S&&S.exp<Date.now())S=null}catch(e){S=null}
+async function call(b){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)});return r.json()}
+function save(){try{S?localStorage.setItem('al_dash',JSON.stringify(S)):localStorage.removeItem('al_dash')}catch(e){}}
+function show(){const on=!!S;$('#lg').classList.toggle('hide',on);$('#ap').classList.toggle('hide',!on);if(on){mine=title(S.name);if(!$('#s').value)range(6);load()}}
+function range(n){const t=shiftToday(),f=new Date(t);f.setDate(f.getDate()-n);$('#s').value=fmt(f);$('#e').value=fmt(t)}
+async function login(){$('#err').textContent='';
+ try{const r=await call({action:'dashboard_login',username:$('#u').value.trim(),password:$('#p').value});
+  if(r.status!=='success'){$('#err').textContent=r.message||'Login failed.';return}
+  S={token:r.token,name:r.agentName,exp:Date.now()+21e6};save();$('#p').value='';show()}
+ catch(e){$('#err').textContent='Cannot reach the server. Check the web app URL and your connection.'}}
+function logout(msg){S=null;save();show();$('#err').textContent=msg||''}
+async function load(){$('#st').textContent='Loading...';
+ try{const r=await call({action:'dashboard_data',token:S.token,from:$('#s').value,to:$('#e').value});
+  if(r.status==='auth')return logout(r.message);
+  if(r.status!=='success'){$('#st').textContent=r.message||'Could not load data.';return}
+  ROWS=r.rows;const mins=Math.max(0,Math.round((Date.now()-r.updated)/6e4));
+  $('#st').textContent=r.updated?'Data refreshes about every 10 minutes. Last refresh '+mins+' min ago.':'No data yet.';
+  const ags=[...new Set(ROWS.map(x=>x[2]).concat(mine))].sort();
+  const cur=$('#ag').value||mine;$('#ag').innerHTML=ags.map(a=>`<option${a===cur?' selected':''}>${esc(a)}</option>`).join('');render()}
+ catch(e){$('#st').textContent='Cannot reach the server.'}}
+const sum=(t,k,ag)=>{const m={};ROWS.forEach(r=>{if(r[0]!==t||(ag&&r[2]!==ag))return;const o=r[3][k]||{};for(const x in o)m[x]=(m[x]||0)+o[x]});return Object.entries(m).sort((a,b)=>b[1]-a[1])};
+const byAg=t=>{const m={};ROWS.forEach(r=>{if(r[0]===t)m[r[2]]=(m[r[2]]||0)+r[3].n});return Object.entries(m).sort((a,b)=>b[1]-a[1])};
+const tot=(t,ag)=>ROWS.reduce((s,r)=>s+(r[0]===t&&(!ag||r[2]===ag)?r[3].n:0),0);
+function donut(id,en){const t=en.reduce((s,x)=>s+x[1],0)||1;let c=0;
+ const seg=en.map((x,i)=>{const p=x[1]/t*100,o=25-c;c+=p;return`<circle r="15.9155" cx="21" cy="21" fill="none" stroke="${PAL[i%10]}" stroke-width="6" stroke-dasharray="${p} ${100-p}" stroke-dashoffset="${o}"/>`}).join('');
+ const lg=en.map((x,i)=>`<div><i style="background:${PAL[i%10]}"></i>${esc(x[0])}<em>${x[1]} · ${Math.round(x[1]/t*100)}%</em></div>`).join('');
+ $(id).innerHTML=`<div class="don"><svg viewBox="0 0 42 42">${seg}</svg><div class="lg">${lg||'No data in this range'}</div></div>`}
+function hbar(id,en,n){en=en.slice(0,n||99);const m=en[0]?en[0][1]:1;
+ $(id).innerHTML=en.map(x=>`<div class="hb"><span title="${esc(x[0])}">${esc(x[0])}</span><u style="width:${x[1]/m*100}%"></u><b>${x[1]}</b></div>`).join('')||'No data in this range'}
+function vbar(id,l,v){const m=Math.max(1,...v);
+ $(id).innerHTML=l.length?`<div class="vb">${l.map((x,i)=>`<div>${v[i]}<u style="height:${v[i]/m*80}%"></u><small>${x}</small></div>`).join('')}</div>`:'No data in this range'}
+function render(){const ag=mode==='me'?$('#ag').value:'';
+ if(ag){const mt=tot('A',ag)+tot('F',ag),all=byAg('A').concat(byAg('F')),m={};all.forEach(x=>m[x[0]]=(m[x[0]]||0)+x[1]);
+  const rk=Object.entries(m).sort((a,b)=>b[1]-a[1]),all_t=rk.reduce((s,x)=>s+x[1],0)||1,pos=rk.findIndex(x=>x[0]===ag)+1;
+  $('#tiles').innerHTML=[['Logs in range',mt],['Share of team',Math.round(mt/all_t*100)+'%'],['Team rank',pos?'#'+pos+' of '+rk.length:'-'],['Team average',Math.round(all_t/(rk.length||1))]].map(x=>`<div class="card tile"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');
+  const d={};ROWS.forEach(r=>{if(r[2]===ag)d[r[1]]=(d[r[1]]||0)+r[3].n});const ks=Object.keys(d).sort();vbar('#f-dy',ks.map(k=>k.slice(5)),ks.map(k=>d[k]))}
+ $('#ta').textContent=tot('A',ag);$('#tf').textContent=tot('F',ag);
+ hbar('#a-ag',byAg('A'));donut('#a-st',sum('A','st',ag));donut('#a-pr',sum('A','pr',ag));
+ hbar('#f-ag',byAg('F'));donut('#f-ar',sum('F','ar',ag));donut('#f-gr',sum('F','gr',ag));hbar('#f-sc',sum('F','sc',ag),10);
+ const h=sum('F','hr',ag).sort((x,y)=>x[0]-y[0]);vbar('#f-hr',h.map(x=>String(x[0]).padStart(2,'0')+':00'),h.map(x=>x[1]))}
+const set=m=>{mode=m;document.body.className=m==='me'?'me':'team';$('#bt').className=m==='me'?'':'on';$('#bm').className=m==='me'?'on':'';if(m==='me'&&mine&&[...$('#ag').options].some(o=>o.value===mine)&&!$('#ag').dataset.u)$('#ag').value=mine;render()};
+$('#bt').onclick=()=>set('team');$('#bm').onclick=()=>set('me');
+$('#ag').onchange=()=>{$('#ag').dataset.u=1;render()};
+['#s','#e'].forEach(i=>$(i).onchange=load);
+$('#q0').onclick=()=>{range(0);load()};$('#q7').onclick=()=>{range(6);load()};$('#q30').onclick=()=>{range(29);load()};
+$('#go').onclick=login;$('#p').onkeydown=e=>{if(e.key==='Enter')login()};$('#out').onclick=()=>logout();
+show();
+</script></body></html>
