@@ -39,6 +39,15 @@ main{max-width:1200px;margin:0 auto;padding:16px}
 #lg h2{margin:0 0 14px;font-size:18px}#lg input{width:100%;margin-bottom:10px;padding:8px;border-color:var(--line)}
 #lg button{width:100%;padding:9px;background:var(--head);color:#fff;border:0;border-radius:6px}
 #err{color:#c0392b;font-size:12px;min-height:16px;margin-top:8px}
+#lg{border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.12)}
+#lg .sub{margin:-8px 0 14px;color:var(--mute);font-size:12px}
+#lg input{border-radius:8px}
+#lg input:focus{outline:2px solid var(--acc)}
+#lg .pw{position:relative}#lg .pw input{padding-right:60px}
+#lg .pw button{position:absolute;right:6px;top:7px;width:auto;padding:3px 8px;background:transparent;color:var(--acc);font-size:12px}
+#lg .rm{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute);margin:-2px 0 12px}
+#lg .rm input{width:auto;margin:0}
+#lg #go:disabled{opacity:.6;cursor:wait}
 .me .t{display:none}.team .m{display:none}.hide{display:none!important}
 .cbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}
 .cbar b{font-size:16px;min-width:150px;text-align:center}
@@ -58,8 +67,10 @@ main{max-width:1200px;margin:0 auto;padding:16px}
 <body class="team">
 <div id="lg">
 <h2>AutoLog Dashboard</h2>
-<input id="u" placeholder="Username" autocomplete="username">
-<input id="p" type="password" placeholder="Password" autocomplete="current-password">
+<p class="sub">Use your AutoLog username and password.</p>
+<input id="u" placeholder="Username" autocomplete="username" autocapitalize="none" spellcheck="false">
+<div class="pw"><input id="p" type="password" placeholder="Password" autocomplete="current-password"><button type="button" id="sp">Show</button></div>
+<label class="rm"><input type="checkbox" id="rm" checked> Remember my username</label>
 <button id="go">Log in</button>
 <div id="err"></div>
 </div>
@@ -112,15 +123,23 @@ const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+Stri
 const shiftToday=()=>new Date(Date.now()-7*36e5);   // before 7AM still counts as the previous day
 let S=null,ROWS=[],mode='team',mine='';
 try{S=JSON.parse(localStorage.getItem('al_dash')||'null');if(S&&S.exp<Date.now())S=null}catch(e){S=null}
-async function call(b){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)});return r.json()}
+async function call(b){const c=new AbortController(),t=setTimeout(()=>c.abort(),25000);
+ try{const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b),signal:c.signal});return await r.json()}finally{clearTimeout(t)}}
 function save(){try{S?localStorage.setItem('al_dash',JSON.stringify(S)):localStorage.removeItem('al_dash')}catch(e){}}
-function show(){const on=!!S;$('#lg').classList.toggle('hide',on);$('#ap').classList.toggle('hide',!on);if(on){mine=title(S.name);if(!$('#s').value)range(0);load()}}
+function show(){const on=!!S;$('#lg').classList.toggle('hide',on);$('#ap').classList.toggle('hide',!on);if(!on)focusLogin();if(on){mine=title(S.name);if(!$('#s').value)range(0);load()}}
 function range(n){const t=shiftToday(),f=new Date(t);f.setDate(f.getDate()-n);$('#s').value=fmt(f);$('#e').value=fmt(t)}
-async function login(){$('#err').textContent='';
+const remember=()=>{try{$('#rm').checked?localStorage.setItem('al_user',$('#u').value.trim()):localStorage.removeItem('al_user')}catch(e){}};
+const focusLogin=()=>{let u='';try{u=localStorage.getItem('al_user')||''}catch(e){}if(u&&!$('#u').value)$('#u').value=u;$(u?'#p':'#u').focus()};
+let busy=false;
+async function login(){if(busy)return;
+ if(!$('#u').value.trim()||!$('#p').value){$('#err').textContent='Enter your username and password.';return}
+ busy=true;$('#go').disabled=true;$('#go').textContent='Logging in...';
+ try{await login0()}finally{busy=false;$('#go').disabled=false;$('#go').textContent='Log in'}}
+async function login0(){$('#err').textContent='';
  try{const r=await call({action:'dashboard_login',username:$('#u').value.trim(),password:$('#p').value});
-  if(r.status!=='success'){$('#err').textContent=r.message||'Login failed.';return}
-  S={token:r.token,name:r.agentName,exp:Date.now()+21e6};save();$('#p').value='';show()}
- catch(e){$('#err').textContent='Cannot reach the server. Check the web app URL and your connection.'}}
+  if(r.status!=='success'){$('#err').textContent=r.message==='Invalid Credentials.'?'Wrong username or password.':(r.message||'Login failed.');$('#p').value='';$('#p').focus();return}
+  S={token:r.token,name:r.agentName,exp:Date.now()+21e6};save();remember();$('#p').value='';show()}
+ catch(e){$('#err').textContent=e.name==='AbortError'?'The server is taking too long. Please try again.':'Cannot reach the server. Check your internet connection and try again.'}}
 function logout(msg){S=null;save();show();$('#err').textContent=msg||''}
 async function load(){$('#st').textContent='Loading...';
  try{const r=await call({action:'dashboard_data',token:S.token,from:$('#s').value,to:$('#e').value});
@@ -190,7 +209,8 @@ $('#cgrid').onclick=e=>{const c=e.target.closest('[data-d]');if(c){$('#s').value
 $('#ag').onchange=()=>{$('#ag').dataset.u=1;render()};
 ['#s','#e'].forEach(i=>$(i).onchange=load);
 $('#q0').onclick=()=>{range(0);load()};$('#q7').onclick=()=>{range(6);load()};$('#q30').onclick=()=>{range(29);load()};
-$('#go').onclick=login;$('#p').onkeydown=e=>{if(e.key==='Enter')login()};$('#out').onclick=()=>logout();
+$('#go').onclick=login;$('#p').onkeydown=e=>{if(e.key==='Enter')login()};$('#u').onkeydown=e=>{if(e.key==='Enter')$('#p').value?login():$('#p').focus()};$('#out').onclick=()=>logout();
+$('#sp').onclick=()=>{const h=$('#p').type==='password';$('#p').type=h?'text':'password';$('#sp').textContent=h?'Hide':'Show'};
 setInterval(()=>{if(S)load()},600000);
 show();
 </script></body></html>
